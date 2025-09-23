@@ -21,7 +21,10 @@ const userSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      enum: ["male", "female"],
+      enum: {
+        values: ["male", "female"],
+        message: "Only male and female gender is allowed",
+      },
       required: true,
     },
     isVerified: {
