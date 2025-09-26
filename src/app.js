@@ -3,8 +3,11 @@ require("dotenv/config");
 const app = express();
 const { DatabaseConnection } = require("./config/dbConnect");
 const userRouter = require("./routes/User");
+const cookieParser = require("cookie-parser");
 
 const PORT = process.env.PORT || 8000;
+
+app.use(cookieParser());
 app.use(express.json());
 app.use("/user", userRouter);
 
