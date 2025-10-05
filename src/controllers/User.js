@@ -2,6 +2,8 @@ const userModel = require("../models/User");
 const validator = require("validator");
 const bcryptjs = require("bcryptjs");
 const { generateToken } = require("../config/jwt");
+const { generateOTP } = require("../config/helper");
+const otpModel = require("../models/OTP");
 
 const userSignup = async (req, res) => {
   try {
@@ -161,11 +163,103 @@ const updateUserDetails = async (req, res) => {
   }
 };
 
+// View logged in user data
 const viewProfile = async (req, res) => {
   try {
     const user = await userModel.findById(req.user._id);
 
     return res.status(200).json({ message: "User details", user });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+// Send reset password OTP
+const resetPasswordOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const existingUser = await userModel.findOne({ email });
+
+    if (!existingUser) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const existingOTP = await otpModel.findOne({
+      email,
+      otptype: "resetPassword",
+    });
+
+    if (existingOTP) {
+      await otpModel.findByIdAndDelete(existingOTP._id);
+    }
+
+    const OTP = generateOTP(6);
+
+    console.log(OTP);
+
+    const hashedOTP = await bcryptjs.hash(String(OTP), 10);
+
+    const otp = new otpModel({
+      userId: existingUser._id,
+      email,
+      otp: hashedOTP,
+      otptype: "resetPassword",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      isUsed: false,
+      createdAt: Date.now(),
+    });
+
+    await otp.save();
+
+    return res.status(200).json({ message: `OTP sent to email ID : ${email}` });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+// Update existing password
+const userResetPassword = async (req, res) => {
+  try {
+    const { otp, email, password } = req.body;
+
+    const otpData = await otpModel.findOne({
+      email,
+      otptype: "resetPassword",
+    });
+
+    const decreptedOTP = await bcryptjs.compare(otp, otpData.otp);
+
+    if (!decreptedOTP) {
+      return res.status(400).json({ error: "Incorrect OTP" });
+    }
+
+    const expiresTime = new Date(otpData.expiresAt).getTime();
+
+    if (expiresTime < Date.now())
+      return res.status(400).json({ error: "OTP expired" });
+
+    if (password == undefined) {
+      return res.status(400).json({ error: "Provide new password" });
+    }
+
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    const user = await userModel.findByIdAndUpdate(
+      otpData.userId,
+      {
+        $set: {
+          password: hashedPassword,
+        },
+      },
+      { runValidators: true, new: true }
+    );
+
+    await user.save();
+
+    await otpModel.findByIdAndDelete(otpData._id);
+
+    return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -177,4 +271,6 @@ module.exports = {
   userLogout,
   updateUserDetails,
   viewProfile,
+  resetPasswordOTP,
+  userResetPassword,
 };
