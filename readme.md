@@ -1,1 +1,6 @@
 # Chat App
+
+```
+Install it
+
+```
