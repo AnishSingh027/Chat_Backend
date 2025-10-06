@@ -174,54 +174,13 @@ const viewProfile = async (req, res) => {
   }
 };
 
-// Send reset password OTP
-const resetPasswordOTP = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const existingUser = await userModel.findOne({ email });
-
-    if (!existingUser) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    const existingOTP = await otpModel.findOne({
-      email,
-      otptype: "resetPassword",
-    });
-
-    if (existingOTP) {
-      await otpModel.findByIdAndDelete(existingOTP._id);
-    }
-
-    const OTP = generateOTP(6);
-
-    console.log(OTP);
-
-    const hashedOTP = await bcryptjs.hash(String(OTP), 10);
-
-    const otp = new otpModel({
-      userId: existingUser._id,
-      email,
-      otp: hashedOTP,
-      otptype: "resetPassword",
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      isUsed: false,
-      createdAt: Date.now(),
-    });
-
-    await otp.save();
-
-    return res.status(200).json({ message: `OTP sent to email ID : ${email}` });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
 // Update existing password
 const userResetPassword = async (req, res) => {
   try {
-    const { otp, email, password } = req.body;
+    const { otp, email, password } = req.body || {};
+
+    if (!otp || !password)
+      return res.status(400).json({ error: "Provide OTP and password" });
 
     const otpData = await otpModel.findOne({
       email,
@@ -265,12 +224,57 @@ const userResetPassword = async (req, res) => {
   }
 };
 
+const verifyLoggedInUser = async (req, res) => {
+  try {
+    const { otp } = req.body || {};
+
+    if (!otp) return res.status(400).json({ error: "Provide OTP" });
+
+    const loggedInUser = await userModel.findById(req.user._id);
+
+    if (loggedInUser.isVerified) {
+      return res.status(400).json({ error: "User already verified" });
+    }
+
+    const otpData = await otpModel.findOne({
+      userId: req.user._id,
+      otptype: "isVerified",
+    });
+
+    const decreptedOTP = await bcryptjs.compare(otp, otpData.otp);
+
+    if (!decreptedOTP) {
+      return res.status(400).json({ error: "Incorrect OTP" });
+    }
+
+    const expiresTime = new Date(otpData.expiresAt).getTime();
+
+    if (expiresTime < Date.now()) {
+      return res.status(400).json({ error: "OTP expired" });
+    }
+
+    const user = await userModel.findByIdAndUpdate(
+      req.user._id,
+      {
+        $set: { isVerified: true },
+      },
+      { runValidators: true }
+    );
+
+    await user.save();
+
+    return res.status(200).json({ message: "User verified successfully" });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   userSignup,
   userLogin,
   userLogout,
   updateUserDetails,
   viewProfile,
-  resetPasswordOTP,
   userResetPassword,
+  verifyLoggedInUser,
 };
