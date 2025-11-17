@@ -168,7 +168,12 @@ const viewProfile = async (req, res) => {
   try {
     const user = await userModel.findById(req.user._id);
 
-    return res.status(200).json({ message: "User details", user });
+    const { password, __v, createdAt, updatedAt, ...requiredFields } =
+      user._doc;
+
+    return res
+      .status(200)
+      .json({ message: "User details", user: requiredFields });
   } catch (error) {
     return res.status(400).json({ error: error.message });
   }
@@ -271,6 +276,14 @@ const verifyLoggedInUser = async (req, res) => {
   }
 };
 
+const isUserAuthenticated = (req, res) => {
+  try {
+    return res.status(200).json({ message: "User is authenticated" });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   userSignup,
   userLogin,
@@ -279,4 +292,5 @@ module.exports = {
   viewProfile,
   userResetPassword,
   verifyLoggedInUser,
+  isUserAuthenticated,
 };
