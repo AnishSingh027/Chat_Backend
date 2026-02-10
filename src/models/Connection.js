@@ -14,7 +14,10 @@ const connectionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "rejected"],
+      enum: {
+        values: ["pending", "accepted", "rejected", "blocked"],
+        message: "Status `{VALUE}` is not allowed",
+      },
     },
     requestedBy: {
       type: mongoose.Schema.Types.ObjectId,
