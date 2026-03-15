@@ -143,7 +143,7 @@ const showAllFriends = async (req, res) => {
         $or: [{ user1: req.user._id }, { user2: req.user._id }],
         status: "accepted",
       })
-      .populate("user1 user2", "firstName");
+      .populate("user1 user2", "firstName lastName photoUrl");
     return res.status(200).json({ user: allFriend });
   } catch (error) {
     return res.status(400).json({ error: error.message });
