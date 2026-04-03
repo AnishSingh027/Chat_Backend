@@ -1,5 +1,7 @@
 const { Server } = require("socket.io");
 const { createHash } = require("node:crypto");
+const chatModel = require("../models/Chat");
+const messageModel = require("../models/Message");
 
 let io;
 
@@ -16,16 +18,51 @@ const connectWithClient = (server) => {
       origin: "http://localhost:5173",
     },
   });
+
   io.on("connection", (socket) => {
-    socket.on("joinChat", ({ firstName, senderUserID, targetUserID }) => {
+    socket.on("joinChat", async ({ firstName, senderUserID, targetUserID }) => {
       const room = createSocketRoom([senderUserID, targetUserID]);
+      try {
+        let chat = await chatModel.findOne({
+          participants: { $all: [senderUserID, targetUserID] },
+        });
+
+        if (!chat) {
+          chat = new chatModel({ participants: [senderUserID, targetUserID] });
+        }
+
+        await chat.save();
+      } catch (error) {
+        console.log(error);
+      }
       socket.join(room);
-      console.log(`${firstName} joined room: ${room}`);
+      // console.log(`${firstName} joined room: ${room}`);
     });
 
     socket.on(
       "sendMessage",
-      ({ firstName, senderUserID, targetUserID, text, photoUrl }) => {
+      async ({ firstName, senderUserID, targetUserID, text, photoUrl }) => {
+        try {
+          let chat = await chatModel.findOne({
+            participants: { $all: [senderUserID, targetUserID] },
+          });
+
+          if (!chat) {
+            chat = new chatModel({
+              participants: [senderUserID, targetUserID],
+            });
+          }
+
+          let message = new messageModel({
+            chatId: chat?._id,
+            senderId: senderUserID,
+            content: text,
+          });
+
+          await message.save();
+        } catch (error) {
+          console.log(error);
+        }
         const room = createSocketRoom([senderUserID, targetUserID]);
         io.to(room).emit("receiveMsg", { firstName, text, photoUrl });
       },

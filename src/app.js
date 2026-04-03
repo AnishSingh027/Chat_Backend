@@ -8,6 +8,7 @@ const connectionRouter = require("./routes/Connection");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { connectWithClient } = require("./config/socket.js");
+const chatRouter = require("./routes/Chat.js");
 
 const PORT = process.env.PORT || 8000;
 
@@ -25,6 +26,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use("/user", userRouter);
 app.use("/connection", connectionRouter);
+app.use("/chat", chatRouter);
 
 DatabaseConnection(process.env.DB_Connection)
   .then(() => {
