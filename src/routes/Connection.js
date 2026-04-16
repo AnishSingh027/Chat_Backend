@@ -5,6 +5,7 @@ const {
   viewAllSentRequest,
   actionOnRequest,
   showAllFriends,
+  getConnectionDetails,
   viewAllReceivedRequest,
 } = require("../controllers/Connection");
 const { userAuth } = require("../middlewares/Auth");
@@ -17,5 +18,6 @@ router.get("/view-sent-request/", userAuth, viewAllSentRequest);
 router.get("/view-received-request/", userAuth, viewAllReceivedRequest);
 router.get("/view-friends/", userAuth, showAllFriends);
 router.post("/action-request/:requestID", userAuth, actionOnRequest);
+router.get("/targetUser-details/:targetUserId", userAuth, getConnectionDetails);
 
 module.exports = router;

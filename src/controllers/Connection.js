@@ -127,6 +127,11 @@ const actionOnRequest = async (req, res) => {
       throw new Error("User request doesn't exist");
     }
 
+    if (status == "rejected") {
+      await connectionModel.findByIdAndDelete(userExist);
+      return res.json({ message: "Request " + status + "!" });
+    }
+
     userExist.status = status;
     await userExist.save();
 
@@ -150,6 +155,34 @@ const showAllFriends = async (req, res) => {
   }
 };
 
+const getConnectionDetails = async (req, res) => {
+  try {
+    const { targetUserId } = req.params;
+
+    const isConnectionExist = await connectionModel.findOne({
+      status: "accepted",
+      $or: [
+        { user1: req.user._id, user2: targetUserId },
+        { user1: targetUserId, user2: req.user._id },
+      ],
+    });
+
+    if (!isConnectionExist) {
+      throw new Error("Connection does not exist");
+    }
+
+    const targetUserDetails = await userModel.findById(targetUserId).lean();
+
+    delete targetUserDetails.password;
+
+    return res
+      .status(200)
+      .json({ message: "Data fetched successfully", user: targetUserDetails });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
 module.exports = {
   displayAllUsers,
   sendRequest,
@@ -157,4 +190,5 @@ module.exports = {
   actionOnRequest,
   showAllFriends,
   viewAllReceivedRequest,
+  getConnectionDetails,
 };

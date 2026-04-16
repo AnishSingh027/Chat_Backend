@@ -4,6 +4,7 @@ const bcryptjs = require("bcryptjs");
 const { generateToken } = require("../config/jwt");
 const { generateOTP } = require("../config/helper");
 const otpModel = require("../models/OTP");
+const connectionModel = require("../models/Connection");
 
 const userSignup = async (req, res) => {
   try {
@@ -30,7 +31,7 @@ const userSignup = async (req, res) => {
 
     // Check for invalid fields
     const invalidFields = Object.keys(req.body).filter(
-      (item) => !allowedFields.includes(item)
+      (item) => !allowedFields.includes(item),
     );
 
     if (invalidFields.length > 0) {
@@ -79,7 +80,7 @@ const userLogin = async (req, res) => {
     }
 
     ["password", "createdAt", "updatedAt", "__v"].map(
-      (data) => delete user[data]
+      (data) => delete user[data],
     );
 
     const token = generateToken(user);
@@ -129,7 +130,7 @@ const updateUserDetails = async (req, res) => {
     ];
 
     const validFields = Object.keys(req.body).filter(
-      (field) => !allowedFields.includes(field)
+      (field) => !allowedFields.includes(field),
     );
 
     if (validFields.length > 0) {
@@ -152,7 +153,7 @@ const updateUserDetails = async (req, res) => {
       {
         runValidators: true,
         new: true,
-      }
+      },
     );
 
     await user.save();
@@ -216,7 +217,7 @@ const userResetPassword = async (req, res) => {
           password: hashedPassword,
         },
       },
-      { runValidators: true, new: true }
+      { runValidators: true, new: true },
     );
 
     await user.save();
@@ -263,7 +264,7 @@ const verifyLoggedInUser = async (req, res) => {
       {
         $set: { isVerified: true },
       },
-      { runValidators: true }
+      { runValidators: true },
     );
 
     await user.save();
