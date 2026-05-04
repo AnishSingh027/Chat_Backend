@@ -5,6 +5,7 @@ const { generateToken } = require("../config/jwt");
 const { generateOTP } = require("../config/helper");
 const otpModel = require("../models/OTP");
 const connectionModel = require("../models/Connection");
+const { getRedis } = require("../config/redis");
 
 const userSignup = async (req, res) => {
   try {
@@ -183,35 +184,38 @@ const viewProfile = async (req, res) => {
 // Update existing password
 const userResetPassword = async (req, res) => {
   try {
-    const { otp, email, password } = req.body || {};
+    const { otp, password, email } = req.body || {};
 
-    if (!otp || !password)
+    if (!otp || !password || !email)
       return res.status(400).json({ error: "Provide OTP and password" });
 
-    const otpData = await otpModel.findOne({
-      email,
-      otptype: "resetPassword",
-    });
+    const userExist = await userModel.findOne({email})
 
-    const decreptedOTP = await bcryptjs.compare(otp, otpData.otp);
+    if (!userExist) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const otpData = await getRedis().get(`${userExist._id}:resetPassword`);
+
+    if (!otpData){
+      return res.status(400).json({ error: "OTP not found" });
+    }
+
+    const decreptedOTP = await bcryptjs.compare(otp, otpData);
 
     if (!decreptedOTP) {
       return res.status(400).json({ error: "Incorrect OTP" });
     }
-
-    const expiresTime = new Date(otpData.expiresAt).getTime();
-
-    if (expiresTime < Date.now())
-      return res.status(400).json({ error: "OTP expired" });
 
     if (password == undefined) {
       return res.status(400).json({ error: "Provide new password" });
     }
 
     const hashedPassword = await bcryptjs.hash(password, 10);
+      
 
-    const user = await userModel.findByIdAndUpdate(
-      otpData.userId,
+    const updatedUser = await userModel.findByIdAndUpdate(
+      {_id: userExist._id},
       {
         $set: {
           password: hashedPassword,
@@ -220,9 +224,7 @@ const userResetPassword = async (req, res) => {
       { runValidators: true, new: true },
     );
 
-    await user.save();
-
-    await otpModel.findByIdAndDelete(otpData._id);
+    await updatedUser.save();
 
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {

@@ -1,6 +1,8 @@
 const bcryptjs = require("bcryptjs");
 const userModel = require("../models/User");
 const otpModel = require("../models/OTP");
+const { getRedis } = require("./redis");
+const { sendEmail } = require("./sendEmail");
 
 const generateOTP = (num) => {
   let OTP = 0;
@@ -23,32 +25,32 @@ const sendOTPToUser = (status) => {
         return res.status(400).json({ message: "User not found" });
       }
 
-      const existingOTP = await otpModel.findOne({
-        email,
-        otptype: status,
-      });
-
-      if (existingOTP) {
-        await otpModel.findByIdAndDelete(existingOTP._id);
-      }
-
       const OTP = generateOTP(6);
 
-      console.log(OTP);
+      sendEmail(email, status, OTP);
 
       const hashedOTP = await bcryptjs.hash(String(OTP), 10);
 
-      const otp = new otpModel({
-        userId: existingUser._id,
-        email,
-        otp: hashedOTP,
-        otptype: status,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        isUsed: false,
-        createdAt: Date.now(),
-      });
+      const limitKey = `user:${existingUser._id}:${status}:limit`;
 
-      await otp.save();
+      const attempts = await getRedis().incr(limitKey);
+
+      if (attempts === 1) {
+        await getRedis().expire(limitKey, 600);
+      }
+
+      if (attempts > 5) {
+        return res
+          .status(400)
+          .json({ message: "Too many attempts, try again later" });
+      }
+
+      await getRedis().set(
+        `user:${existingUser._id}:${status}`,
+        hashedOTP,
+        "EX",
+        600,
+      );
 
       return res
         .status(200)

@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { connectWithClient } = require("./config/socket.js");
 const chatRouter = require("./routes/Chat.js");
+const { connectToRedis, getRedis } = require("./config/redis.js");
 
 const PORT = process.env.PORT || 8000;
 
@@ -21,6 +22,7 @@ app.use(
 
 const httpServer = createServer(app);
 connectWithClient(httpServer);
+connectToRedis(process.env.REDIS_HOST);
 
 app.use(cookieParser());
 app.use(express.json());

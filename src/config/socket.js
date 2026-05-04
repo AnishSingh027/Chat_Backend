@@ -20,6 +20,14 @@ const connectWithClient = (server) => {
   });
 
   io.on("connection", (socket) => {
+    // Show online or offline status
+
+    socket.on("status", async ({ id, status }) => {
+      console.log("id", id);
+      console.log("Status", status);
+      io.emit("status", { id, status });
+    });
+
     socket.on("joinChat", async ({ firstName, senderUserID, targetUserID }) => {
       const room = createSocketRoom([senderUserID, targetUserID]);
       try {
