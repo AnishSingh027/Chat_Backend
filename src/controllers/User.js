@@ -76,8 +76,26 @@ const userLogin = async (req, res) => {
 
     const decreptedPassword = await bcryptjs.compare(password, user.password);
 
+    const key = `login:fail:${user._id}`;
+
     if (!decreptedPassword) {
+      const attempts = await getRedis().incr(key);
+
+      if (attempts == 1) {
+        await getRedis().expire(key, 600);
+      }
+
       return res.status(400).json({ error: "Invalid Credentials" });
+    }
+
+    const attempts = await getRedis().get(key);
+
+    if (attempts >= 5) {
+      await getRedis().expire(key, 60 * 15);
+
+      return res.status(400).json({
+        message: "Too many attempts. Please try again after some time",
+      });
     }
 
     ["password", "createdAt", "updatedAt", "__v"].map(
@@ -189,7 +207,7 @@ const userResetPassword = async (req, res) => {
     if (!otp || !password || !email)
       return res.status(400).json({ error: "Provide OTP and password" });
 
-    const userExist = await userModel.findOne({email})
+    const userExist = await userModel.findOne({ email });
 
     if (!userExist) {
       return res.status(400).json({ message: "User not found" });
@@ -197,7 +215,7 @@ const userResetPassword = async (req, res) => {
 
     const otpData = await getRedis().get(`${userExist._id}:resetPassword`);
 
-    if (!otpData){
+    if (!otpData) {
       return res.status(400).json({ error: "OTP not found" });
     }
 
@@ -212,10 +230,9 @@ const userResetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcryptjs.hash(password, 10);
-      
 
     const updatedUser = await userModel.findByIdAndUpdate(
-      {_id: userExist._id},
+      { _id: userExist._id },
       {
         $set: {
           password: hashedPassword,

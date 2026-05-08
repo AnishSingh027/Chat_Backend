@@ -2,6 +2,7 @@ const { Server } = require("socket.io");
 const { createHash } = require("node:crypto");
 const chatModel = require("../models/Chat");
 const messageModel = require("../models/Message");
+const { getRedis } = require("./redis");
 
 let io;
 
@@ -22,10 +23,15 @@ const connectWithClient = (server) => {
   io.on("connection", (socket) => {
     // Show online or offline status
 
-    socket.on("status", async ({ id, status }) => {
-      console.log("id", id);
-      console.log("Status", status);
-      io.emit("status", { id, status });
+    socket.on("user:online", async ({ id, status }) => {
+      // await getRedis().set(`user:availability:${id}`, "1", "EX", 60);
+      console.log("User is online", id, status);
+      const onlineUsers = await getRedis().keys(`user:availability:*`);
+      const parsedUsers = onlineUsers.map(
+        (user) => user.split("user:availability:")[1],
+      );
+      console.log("online users", parsedUsers);
+      io.emit("status", { onlineUsers });
     });
 
     socket.on("joinChat", async ({ firstName, senderUserID, targetUserID }) => {
