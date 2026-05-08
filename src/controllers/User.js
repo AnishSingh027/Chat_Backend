@@ -78,24 +78,28 @@ const userLogin = async (req, res) => {
 
     const key = `login:fail:${user._id}`;
 
+    const getLoginFailKey = (await getRedis().get(key)) || 0;
+
+    if (getLoginFailKey == 6) {
+      return res.status(400).json({
+        message: "Too many attempts. Please try again after some time",
+      });
+    }
+
     if (!decreptedPassword) {
       const attempts = await getRedis().incr(key);
+      if (attempts == 6) {
+        await getRedis().expire(key, 60 * 15);
+        return res.status(400).json({
+          message: "Too many attempts. Please try again after some time",
+        });
+      }
 
       if (attempts == 1) {
         await getRedis().expire(key, 600);
       }
 
       return res.status(400).json({ error: "Invalid Credentials" });
-    }
-
-    const attempts = await getRedis().get(key);
-
-    if (attempts >= 5) {
-      await getRedis().expire(key, 60 * 15);
-
-      return res.status(400).json({
-        message: "Too many attempts. Please try again after some time",
-      });
     }
 
     ["password", "createdAt", "updatedAt", "__v"].map(
