@@ -21,17 +21,25 @@ const connectWithClient = (server) => {
   });
 
   io.on("connection", (socket) => {
-    // Show online or offline status
+    // User avalibility update
+    socket.on("userOnline", async ({ id, status }) => {
+      await getRedis().set(`user:online:${id}`, status, "EX", 60 * 15);
+      const onlineUsers = await getRedis().keys(`user:online:*`);
 
-    socket.on("user:online", async ({ id, status }) => {
-      // await getRedis().set(`user:availability:${id}`, "1", "EX", 60);
-      console.log("User is online", id, status);
-      const onlineUsers = await getRedis().keys(`user:availability:*`);
-      const parsedUsers = onlineUsers.map(
-        (user) => user.split("user:availability:")[1],
+      const parsedUsers = (await onlineUsers)?.map(
+        (user) => user.split("user:online:")[1],
       );
-      console.log("online users", parsedUsers);
-      io.emit("status", { onlineUsers });
+      io.emit("onlineUsers", parsedUsers);
+    });
+
+    socket.on("userOffline", async ({ userID, status }) => {
+      await getRedis().del(`user:online:${userID}`);
+      const onlineUsers = await getRedis().keys(`user:online:*`);
+
+      const parsedUsers = (await onlineUsers)?.map(
+        (user) => user.split("user:online:")[1],
+      );
+      io.emit("onlineUsers", parsedUsers);
     });
 
     socket.on("joinChat", async ({ firstName, senderUserID, targetUserID }) => {
@@ -51,6 +59,11 @@ const connectWithClient = (server) => {
       }
       socket.join(room);
       // console.log(`${firstName} joined room: ${room}`);
+    });
+
+    socket.on("message typing", ({ senderUserID, targetUserID }) => {
+      const room = createSocketRoom([senderUserID, targetUserID]);
+      socket.to(room).emit("message typing", { senderUserID });
     });
 
     socket.on(

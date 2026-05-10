@@ -121,11 +121,25 @@ const userLogin = async (req, res) => {
 };
 
 const userLogout = async (req, res) => {
-  res.cookie("token", "", {
-    maxAge: 0,
-  });
+  try {
+    const userExist = await userModel.findById(req?.user?._id);
 
-  return res.status(200).json({ message: "User successfully logged out" });
+    if (!userExist) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    res.cookie("token", "", {
+      maxAge: 0,
+    });
+    return res
+      .status(200)
+      .json({
+        userID: userExist?._id,
+        message: "User successfully logged out",
+      });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
 };
 
 const updateUserDetails = async (req, res) => {
