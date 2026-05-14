@@ -26,4 +26,28 @@ const fetchConnectionChat = async (req, res) => {
   }
 };
 
-module.exports = { fetchConnectionChat };
+const removeChatMessage = async (req, res) => {
+  try {
+    const { messageID } = req.body;
+    const isMessageExist = await messageModel.findOne({
+      _id: messageID,
+      senderId: req?.user?._id,
+    });
+
+    if (!isMessageExist) {
+      throw new Error("Message does not exist");
+    }
+
+    if (isMessageExist?.senderId != req?.user?._id) {
+      throw new Error("You cannot remove this message");
+    }
+
+    await messageModel.findByIdAndDelete(messageID);
+
+    return res.json({ message: "Message removed successfully" });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+module.exports = { fetchConnectionChat, removeChatMessage };

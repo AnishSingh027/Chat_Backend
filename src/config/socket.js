@@ -23,7 +23,7 @@ const connectWithClient = (server) => {
   io.on("connection", (socket) => {
     // User avalibility update
     socket.on("userOnline", async ({ id, status }) => {
-      await getRedis().set(`user:online:${id}`, status, "EX", 60 * 15);
+      await getRedis().set(`user:online:${id}`, status, "EX", 60 * 5);
       const onlineUsers = await getRedis().keys(`user:online:*`);
 
       const parsedUsers = (await onlineUsers)?.map(
@@ -87,11 +87,18 @@ const connectWithClient = (server) => {
           });
 
           await message.save();
+
+          const room = createSocketRoom([senderUserID, targetUserID]);
+          io.to(room).emit("receiveMsg", {
+            _id: message._id,
+            firstName,
+            text,
+            photoUrl,
+            senderId: senderUserID,
+          });
         } catch (error) {
           console.log(error);
         }
-        const room = createSocketRoom([senderUserID, targetUserID]);
-        io.to(room).emit("receiveMsg", { firstName, text, photoUrl });
       },
     );
   });
