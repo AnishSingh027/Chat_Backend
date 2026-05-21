@@ -1,18 +1,20 @@
 const express = require("express");
 const {
-  displayAllUsers,
+  displayAllConnections,
   sendRequest,
   viewAllSentRequest,
   actionOnRequest,
   showAllFriends,
   getConnectionDetails,
+  displayAllUsers,
   viewAllReceivedRequest,
 } = require("../controllers/Connection");
 const { userAuth } = require("../middlewares/Auth");
 
 const router = express.Router();
 
-router.get("/all-user", userAuth, displayAllUsers);
+router.get("/all-users", userAuth, displayAllUsers);
+router.get("/all-connections", userAuth, displayAllConnections);
 router.post("/send-request/:receiverID", userAuth, sendRequest);
 router.get("/view-sent-request/", userAuth, viewAllSentRequest);
 router.get("/view-received-request/", userAuth, viewAllReceivedRequest);

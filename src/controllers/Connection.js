@@ -4,6 +4,19 @@ const connectionModel = require("../models/Connection");
 
 const displayAllUsers = async (req, res) => {
   try {
+    const allUsers = await userModel.find({});
+    const allUsersExceptMe = allUsers.filter((user) => user._id != req.user._id);
+    return res.status(200).json({
+      message: "Data retrieved successfully",
+      users: allUsersExceptMe,
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+const displayAllConnections = async (req, res) => {
+  try {
     const allUsers = (await userModel.find({})).filter(
       (user) => user._id != req.user._id,
     );
@@ -184,6 +197,7 @@ const getConnectionDetails = async (req, res) => {
 };
 
 module.exports = {
+  displayAllConnections,
   displayAllUsers,
   sendRequest,
   viewAllSentRequest,
