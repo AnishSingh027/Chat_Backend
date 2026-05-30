@@ -229,4 +229,18 @@ const deleteGroup = async (req, res) => {
   }
 }
 
-module.exports = { fetchConnectionChat, removeChatMessage, createGroup, addUserToGroup, removeMemberFromGroup, editGroupDetails, displayGroupUsers, leaveGroup, deleteGroup, showUserGroups, showGroupDetails };
+const fetchGroupMessages = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+
+    const groupMessages = await messageModel
+      .find({ chatId })
+      .populate("senderId", "firstName lastName photoUrl");
+
+    return res.json({ message: "Group messages fetched successfully!", messages: groupMessages });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+}
+
+module.exports = { fetchConnectionChat, removeChatMessage, createGroup, addUserToGroup, removeMemberFromGroup, editGroupDetails, displayGroupUsers, leaveGroup, deleteGroup, showUserGroups, showGroupDetails, fetchGroupMessages };

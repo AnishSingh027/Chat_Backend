@@ -5,10 +5,10 @@ const connectionModel = require("../models/Connection");
 const displayAllUsers = async (req, res) => {
   try {
     const allUsers = await userModel.find({});
-    const allUsersExceptMe = allUsers.filter((user) => user._id != req.user._id);
+    const allUsersExceptMeAndAdmin = allUsers.filter((user) => (user._id != req.user._id) && (user?.type != "admin"));
     return res.status(200).json({
       message: "Data retrieved successfully",
-      users: allUsersExceptMe,
+      users: allUsersExceptMeAndAdmin,
     });
   } catch (error) {
     return res.status(400).json({ error: error.message });
@@ -18,7 +18,7 @@ const displayAllUsers = async (req, res) => {
 const displayAllConnections = async (req, res) => {
   try {
     const allUsers = (await userModel.find({})).filter(
-      (user) => user._id != req.user._id,
+      (user) => (user._id != req.user._id) && (user?.type != "admin"),
     );
 
     const connections = await connectionModel.find({
@@ -33,7 +33,7 @@ const displayAllConnections = async (req, res) => {
     });
 
     const allUsersExceptConnection = allUsers.filter(
-      (user) => !connectedUserID.has(user._id.toString()),
+      (user) => !connectedUserID.has(user._id.toString()) && (user?.type != "admin"),
     );
 
     return res.status(200).json({

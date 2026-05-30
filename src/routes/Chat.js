@@ -14,7 +14,8 @@ const {
   displayGroupUsers,
   showUserGroups,
   leaveGroup,
-  deleteGroup
+  deleteGroup,
+  fetchGroupMessages
 } = require("../controllers/Chat.js");
 
 const chatRouter = express.Router();
@@ -26,8 +27,9 @@ chatRouter.post("/add-member/:chatId", userAuth, addUserToGroup);
 chatRouter.delete("/remove-member/:chatId", userAuth, removeMemberFromGroup);
 chatRouter.post("/edit-group/:chatId", userAuth, editGroupDetails);
 chatRouter.get("/show-groups", userAuth, showUserGroups);
-chatRouter.get("/group-details/:chatId", userAuth, showGroupDetails)
+chatRouter.get("/group-details/:chatId", userAuth, showGroupDetails);
 chatRouter.get("/group-users/:chatId", userAuth, displayGroupUsers);
+chatRouter.get("/group-messages/:chatId", userAuth, fetchGroupMessages);
 chatRouter.delete("/leave-group/:chatId", userAuth, leaveGroup);
 chatRouter.delete("/delete-group/:chatId", userAuth, deleteGroup);
 

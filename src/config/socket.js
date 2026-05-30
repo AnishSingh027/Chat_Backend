@@ -101,6 +101,29 @@ const connectWithClient = (server) => {
         }
       },
     );
+
+    // Group messages
+    socket.on("group_users", ({ users }) => {
+      const groupRoom = createSocketRoom(users);
+      socket.join(groupRoom);
+    });
+
+    socket.on("new_group_message", async ({ chatId, users, content, sender }) => {
+      const groupRoom = createSocketRoom(users);
+
+      const message = await messageModel({
+        chatId,
+        senderId: sender,
+        content,
+      });
+      
+      await message.save();
+
+      io.to(groupRoom).emit("receive_group_message", {
+        content,
+        sender,
+      });
+    });
   });
 
   return io;

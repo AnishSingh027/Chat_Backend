@@ -11,4 +11,19 @@ const userAuth = (req, res, next) => {
   next();
 };
 
-module.exports = { userAuth };
+const AdminAuth = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(400).json({ error: "Please login" });
+
+  const user = retrievePayloadFromToken(token);
+
+  if (user?.type != "admin") {
+    return res.status(400).json({ error: "Unauthorized" });
+  }
+
+  req.admin = user;
+  next();
+};
+
+module.exports = { userAuth, AdminAuth };

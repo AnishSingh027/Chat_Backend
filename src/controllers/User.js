@@ -231,7 +231,10 @@ const userResetPassword = async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
-    const otpData = await getRedis().get(`${userExist._id}:resetPassword`);
+    const otpData = await getRedis().get(`user:${userExist._id}:resetPassword`);
+
+    console.log(otpData);
+    
 
     if (!otpData) {
       return res.status(400).json({ error: "OTP not found" });
